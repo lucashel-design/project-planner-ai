@@ -45,3 +45,23 @@ ul {
 li {
   margin-bottom: 8px;
 }
+
+.assistant-area {
+  margin-top: 30px;
+  text-align: left;
+  background: white;
+  padding: 15px;
+  border-radius: 5px;
+}
+
+.assistant-area h2 {
+  margin-top: 0;
+}
+
+#assistantOutput {
+  margin-top: 15px;
+  background: #fafafa;
+  padding: 12px;
+  border-radius: 5px;
+  min-height: 40px;
+}
