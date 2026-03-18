@@ -96,7 +96,7 @@ export function completeCurrentTask(project) {
   return project;
 }
 
-export function addConversationEntry(project, question, answer) {
+export function addConversationEntry(project, question, answer, intent = "generic") {
   if (!project.conversationHistory) {
     project.conversationHistory = [];
   }
@@ -104,6 +104,7 @@ export function addConversationEntry(project, question, answer) {
   project.conversationHistory.push({
     question,
     answer,
+    intent,
     timestamp: new Date().toISOString()
   });
 

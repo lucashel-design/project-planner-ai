@@ -76,7 +76,7 @@ function attachActionListeners() {
       }
 
       const result = answerQuestion(question, activeProject);
-      addConversationEntry(activeProject, question, result.answer);
+      addConversationEntry(activeProject, question, result.answer, result.intent);
 
       document.getElementById("questionInput").value = "";
       refreshUI();
