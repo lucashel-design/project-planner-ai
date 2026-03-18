@@ -1,68 +1,74 @@
 export function createPlan(input) {
   const lowerInput = input.toLowerCase();
 
+  let basePlan;
+
   if (lowerInput.includes("marketing")) {
-    return createMarketingPlan(input);
+    basePlan = createMarketingPlan(input);
+  } else if (lowerInput.includes("app") || lowerInput.includes("aplicação")) {
+    basePlan = createAppPlan(input);
+  } else {
+    basePlan = createGenericPlan(input);
   }
 
-  if (lowerInput.includes("app") || lowerInput.includes("aplicação")) {
-    return createAppPlan(input);
-  }
-
-  return createGenericPlan(input);
+  return {
+    ...basePlan,
+    currentStepIndex: 0,
+    completed: []
+  };
 }
 
-// 📈 Marketing
 function createMarketingPlan(input) {
+  const steps = [
+    "Definir objetivo",
+    "Definir público-alvo",
+    "Definir proposta de valor",
+    "Escolher canais",
+    "Criar plano de conteúdo",
+    "Executar campanhas",
+    "Analisar resultados"
+  ];
+
   return {
     project: input,
     phase: "Fase 1 — Base Estratégica",
-    currentTask: "Definir objetivo principal",
-    steps: [
-      "Definir objetivo",
-      "Definir público-alvo",
-      "Definir proposta de valor",
-      "Escolher canais",
-      "Criar plano de conteúdo",
-      "Executar campanhas",
-      "Analisar resultados"
-    ],
-    completed: []
+    steps,
+    currentTask: steps[0]
   };
 }
 
-// 💻 App
 function createAppPlan(input) {
+  const steps = [
+    "Definir problema",
+    "Definir funcionalidades",
+    "Escolher tecnologia",
+    "Criar UI básica",
+    "Implementar lógica",
+    "Testar",
+    "Publicar"
+  ];
+
   return {
     project: input,
     phase: "Fase 1 — Planeamento",
-    currentTask: "Definir funcionalidade principal",
-    steps: [
-      "Definir problema",
-      "Definir funcionalidades",
-      "Escolher tecnologia",
-      "Criar UI básica",
-      "Implementar lógica",
-      "Testar",
-      "Publicar"
-    ],
-    completed: []
+    steps,
+    currentTask: steps[0]
   };
 }
 
-// 🧩 Genérico
 function createGenericPlan(input) {
+  const steps = [
+    "Definir objetivo",
+    "Quebrar em tarefas",
+    "Organizar prioridades",
+    "Executar",
+    "Revisar"
+  ];
+
   return {
     project: input,
     phase: "Fase 1 — Definição",
-    currentTask: "Definir objetivo principal",
-    steps: [
-      "Definir objetivo",
-      "Quebrar em tarefas",
-      "Organizar prioridades",
-      "Executar",
-      "Revisar"
-    ],
-    completed: []
+    steps,
+    currentTask: steps[0]
   };
 }
