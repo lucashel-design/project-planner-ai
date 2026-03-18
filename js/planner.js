@@ -31,6 +31,7 @@ function createMarketingPlan(input) {
 
   return {
     project: input,
+    projectType: "marketing",
     phase: "Fase 1 — Base Estratégica",
     steps,
     currentTask: steps[0]
@@ -50,6 +51,7 @@ function createAppPlan(input) {
 
   return {
     project: input,
+    projectType: "app",
     phase: "Fase 1 — Planeamento",
     steps,
     currentTask: steps[0]
@@ -67,6 +69,7 @@ function createGenericPlan(input) {
 
   return {
     project: input,
+    projectType: "generic",
     phase: "Fase 1 — Definição",
     steps,
     currentTask: steps[0]
