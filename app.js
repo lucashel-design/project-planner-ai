@@ -12,6 +12,14 @@ import {
 import { renderOutput, renderProjectsList } from "./js/ui.js";
 import { answerQuestion } from "./js/assistant.js";
 
+function clearAssistantPanel() {
+  const assistantOutput = document.getElementById("assistantOutput");
+  const questionInput = document.getElementById("questionInput");
+
+  if (assistantOutput) assistantOutput.innerHTML = "";
+  if (questionInput) questionInput.value = "";
+}
+
 function refreshUI() {
   const projects = loadProjects();
   const activeProjectId = getActiveProjectId();
@@ -36,6 +44,7 @@ function attachActionListeners() {
       addProject(plan);
 
       document.getElementById("input").value = "";
+      clearAssistantPanel();
       refreshUI();
     };
   }
@@ -46,6 +55,7 @@ function attachActionListeners() {
       if (!activeProject) return;
 
       completeCurrentTask(activeProject);
+      clearAssistantPanel();
       refreshUI();
     };
   }
@@ -69,8 +79,6 @@ function attachActionListeners() {
       addConversationEntry(activeProject, question, result.answer);
 
       document.getElementById("questionInput").value = "";
-      document.getElementById("assistantOutput").innerHTML = result.answer;
-
       refreshUI();
       document.getElementById("assistantOutput").innerHTML = result.answer;
     };
@@ -80,6 +88,7 @@ function attachActionListeners() {
     button.onclick = () => {
       const projectId = button.dataset.id;
       selectProject(projectId);
+      clearAssistantPanel();
       refreshUI();
     };
   });
@@ -88,8 +97,7 @@ function attachActionListeners() {
     button.onclick = () => {
       const projectId = button.dataset.id;
       deleteProject(projectId);
-
-      document.getElementById("assistantOutput").innerHTML = "";
+      clearAssistantPanel();
       refreshUI();
     };
   });
