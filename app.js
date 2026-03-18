@@ -1,5 +1,11 @@
 import { createPlan } from "./js/planner.js";
-import { saveState, loadState, clearState, completeCurrentTask } from "./js/state.js";
+import {
+  saveState,
+  loadState,
+  clearState,
+  completeCurrentTask,
+  addConversationEntry
+} from "./js/state.js";
 import { renderOutput } from "./js/ui.js";
 import { answerQuestion } from "./js/assistant.js";
 
@@ -9,28 +15,28 @@ function attachActionListeners() {
   const askBtn = document.getElementById("askBtn");
 
   if (completeBtn) {
-    completeBtn.addEventListener("click", () => {
+    completeBtn.onclick = () => {
       const currentState = loadState();
       if (!currentState) return;
 
       const updatedState = completeCurrentTask(currentState);
       renderOutput(updatedState);
       attachActionListeners();
-    });
+    };
   }
 
   if (resetBtn) {
-    resetBtn.addEventListener("click", () => {
+    resetBtn.onclick = () => {
       clearState();
       document.getElementById("output").innerHTML = "";
       document.getElementById("assistantOutput").innerHTML = "";
       document.getElementById("input").value = "";
       document.getElementById("questionInput").value = "";
-    });
+    };
   }
 
   if (askBtn) {
-    askBtn.addEventListener("click", () => {
+    askBtn.onclick = () => {
       const currentState = loadState();
       const question = document.getElementById("questionInput").value.trim();
 
@@ -45,8 +51,16 @@ function attachActionListeners() {
       }
 
       const result = answerQuestion(question, currentState);
+
       document.getElementById("assistantOutput").innerHTML = result.answer;
-    });
+
+      const updatedState = addConversationEntry(currentState, question, result.answer);
+      renderOutput(updatedState);
+      attachActionListeners();
+
+      document.getElementById("questionInput").value = "";
+      document.getElementById("assistantOutput").innerHTML = result.answer;
+    };
   }
 }
 

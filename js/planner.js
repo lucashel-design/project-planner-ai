@@ -14,7 +14,8 @@ export function createPlan(input) {
   return {
     ...basePlan,
     currentStepIndex: 0,
-    completed: []
+    completed: [],
+    conversationHistory: []
   };
 }
 

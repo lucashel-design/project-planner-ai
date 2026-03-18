@@ -36,3 +36,18 @@ export function completeCurrentTask(state) {
   saveState(state);
   return state;
 }
+
+export function addConversationEntry(state, question, answer) {
+  if (!state.conversationHistory) {
+    state.conversationHistory = [];
+  }
+
+  state.conversationHistory.push({
+    question,
+    answer,
+    timestamp: new Date().toISOString()
+  });
+
+  saveState(state);
+  return state;
+}

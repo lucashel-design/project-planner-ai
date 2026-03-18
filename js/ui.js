@@ -20,6 +20,26 @@ export function renderOutput(plan) {
 
   const progressPercent = Math.round((plan.completed.length / plan.steps.length) * 100);
 
+  const historyHtml = plan.conversationHistory && plan.conversationHistory.length
+    ? `
+      <div class="history">
+        <h3>Histórico da conversa</h3>
+        ${plan.conversationHistory.map(item => `
+          <div class="history-item">
+            <p><strong>Pergunta:</strong> ${item.question}</p>
+            <p><strong>Resposta:</strong></p>
+            <div>${item.answer}</div>
+          </div>
+        `).join("")}
+      </div>
+    `
+    : `
+      <div class="history">
+        <h3>Histórico da conversa</h3>
+        <p>Ainda não há perguntas registadas.</p>
+      </div>
+    `;
+
   output.innerHTML = `
     <h3>Projeto:</h3>
     <p>${plan.project}</p>
@@ -45,5 +65,7 @@ export function renderOutput(plan) {
       <button id="completeTaskBtn">Concluir tarefa atual</button>
       <button id="resetBtn">Reiniciar projeto</button>
     </div>
+
+    ${historyHtml}
   `;
 }
