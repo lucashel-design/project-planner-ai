@@ -1,47 +1,62 @@
 import { createPlan } from "./js/planner.js";
 import {
-  saveState,
-  loadState,
-  clearState,
+  loadProjects,
+  addProject,
+  getActiveProjectId,
+  getActiveProject,
+  selectProject,
+  deleteProject,
   completeCurrentTask,
   addConversationEntry
 } from "./js/state.js";
-import { renderOutput } from "./js/ui.js";
+import { renderOutput, renderProjectsList } from "./js/ui.js";
 import { answerQuestion } from "./js/assistant.js";
 
+function refreshUI() {
+  const projects = loadProjects();
+  const activeProjectId = getActiveProjectId();
+  const activeProject = getActiveProject();
+
+  renderProjectsList(projects, activeProjectId);
+  renderOutput(activeProject);
+  attachActionListeners();
+}
+
 function attachActionListeners() {
+  const generateBtn = document.getElementById("generateBtn");
   const completeBtn = document.getElementById("completeTaskBtn");
-  const resetBtn = document.getElementById("resetBtn");
   const askBtn = document.getElementById("askBtn");
 
-  if (completeBtn) {
-    completeBtn.onclick = () => {
-      const currentState = loadState();
-      if (!currentState) return;
+  if (generateBtn) {
+    generateBtn.onclick = () => {
+      const input = document.getElementById("input").value.trim();
+      if (!input) return;
 
-      const updatedState = completeCurrentTask(currentState);
-      renderOutput(updatedState);
-      attachActionListeners();
+      const plan = createPlan(input);
+      addProject(plan);
+
+      document.getElementById("input").value = "";
+      refreshUI();
     };
   }
 
-  if (resetBtn) {
-    resetBtn.onclick = () => {
-      clearState();
-      document.getElementById("output").innerHTML = "";
-      document.getElementById("assistantOutput").innerHTML = "";
-      document.getElementById("input").value = "";
-      document.getElementById("questionInput").value = "";
+  if (completeBtn) {
+    completeBtn.onclick = () => {
+      const activeProject = getActiveProject();
+      if (!activeProject) return;
+
+      completeCurrentTask(activeProject);
+      refreshUI();
     };
   }
 
   if (askBtn) {
     askBtn.onclick = () => {
-      const currentState = loadState();
+      const activeProject = getActiveProject();
       const question = document.getElementById("questionInput").value.trim();
 
-      if (!currentState) {
-        document.getElementById("assistantOutput").innerHTML = "<p>Cria primeiro um projeto.</p>";
+      if (!activeProject) {
+        document.getElementById("assistantOutput").innerHTML = "<p>Cria ou abre primeiro um projeto.</p>";
         return;
       }
 
@@ -50,38 +65,36 @@ function attachActionListeners() {
         return;
       }
 
-      const result = answerQuestion(question, currentState);
-
-      document.getElementById("assistantOutput").innerHTML = result.answer;
-
-      const updatedState = addConversationEntry(currentState, question, result.answer);
-      renderOutput(updatedState);
-      attachActionListeners();
+      const result = answerQuestion(question, activeProject);
+      addConversationEntry(activeProject, question, result.answer);
 
       document.getElementById("questionInput").value = "";
       document.getElementById("assistantOutput").innerHTML = result.answer;
+
+      refreshUI();
+      document.getElementById("assistantOutput").innerHTML = result.answer;
     };
   }
-}
 
-function handleSubmit() {
-  const input = document.getElementById("input").value.trim();
-  if (!input) return;
+  document.querySelectorAll(".open-project-btn").forEach(button => {
+    button.onclick = () => {
+      const projectId = button.dataset.id;
+      selectProject(projectId);
+      refreshUI();
+    };
+  });
 
-  const plan = createPlan(input);
-  saveState(plan);
-  renderOutput(plan);
-  attachActionListeners();
+  document.querySelectorAll(".delete-project-btn").forEach(button => {
+    button.onclick = () => {
+      const projectId = button.dataset.id;
+      deleteProject(projectId);
+
+      document.getElementById("assistantOutput").innerHTML = "";
+      refreshUI();
+    };
+  });
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  const button = document.getElementById("generateBtn");
-  button.addEventListener("click", handleSubmit);
-
-  const saved = loadState();
-  if (saved) {
-    renderOutput(saved);
-  }
-
-  attachActionListeners();
+  refreshUI();
 });

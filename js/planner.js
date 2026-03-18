@@ -1,3 +1,13 @@
+function generateId() {
+  return `proj_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+}
+
+function generateTitle(input) {
+  const trimmed = input.trim();
+  if (trimmed.length <= 50) return trimmed;
+  return `${trimmed.slice(0, 50)}...`;
+}
+
 export function createPlan(input) {
   const lowerInput = input.toLowerCase();
 
@@ -11,7 +21,13 @@ export function createPlan(input) {
     basePlan = createGenericPlan(input);
   }
 
+  const now = new Date().toISOString();
+
   return {
+    id: generateId(),
+    title: generateTitle(input),
+    createdAt: now,
+    updatedAt: now,
     ...basePlan,
     currentStepIndex: 0,
     completed: [],

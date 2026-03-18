@@ -6,20 +6,29 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Project Planner AI</h1>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2>Meus Projetos</h2>
+      <div id="projectsList"></div>
+    </aside>
 
-    <textarea id="input" placeholder="Descreve o projeto..."></textarea>
-    <button id="generateBtn">Gerar Plano</button>
+    <main class="main-content">
+      <div class="container">
+        <h1>Project Planner AI</h1>
 
-    <div id="output"></div>
+        <textarea id="input" placeholder="Descreve o projeto..."></textarea>
+        <button id="generateBtn">Gerar Plano</button>
 
-    <div id="assistantArea" class="assistant-area">
-      <h2>Pergunta sobre o passo atual</h2>
-      <textarea id="questionInput" placeholder="Ex.: Como defino o meu público-alvo?"></textarea>
-      <button id="askBtn">Perguntar</button>
-      <div id="assistantOutput"></div>
-    </div>
+        <div id="output"></div>
+
+        <div id="assistantArea" class="assistant-area">
+          <h2>Pergunta sobre o passo atual</h2>
+          <textarea id="questionInput" placeholder="Ex.: Como defino o meu público-alvo?"></textarea>
+          <button id="askBtn">Perguntar</button>
+          <div id="assistantOutput"></div>
+        </div>
+      </div>
+    </main>
   </div>
 
   <script type="module" src="app.js"></script>

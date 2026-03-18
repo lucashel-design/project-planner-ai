@@ -1,10 +1,42 @@
-export function renderOutput(plan) {
+export function renderProjectsList(projects, activeProjectId) {
+  const projectsList = document.getElementById("projectsList");
+
+  if (!projects.length) {
+    projectsList.innerHTML = "<p>Ainda não há projetos.</p>";
+    return;
+  }
+
+  projectsList.innerHTML = projects.map(project => {
+    const isActive = project.id === activeProjectId;
+    const progressPercent = Math.round((project.completed.length / project.steps.length) * 100);
+
+    return `
+      <div class="project-card ${isActive ? "active" : ""}">
+        <h3>${project.title}</h3>
+        <p><strong>Fase:</strong> ${project.phase}</p>
+        <p><strong>Tarefa:</strong> ${project.currentTask}</p>
+        <p><strong>Progresso:</strong> ${progressPercent}%</p>
+        <div class="card-actions">
+          <button class="open-project-btn" data-id="${project.id}">Abrir</button>
+          <button class="delete-project-btn" data-id="${project.id}">Apagar</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+export function renderOutput(project) {
   const output = document.getElementById("output");
 
-  const pendingSteps = plan.steps
+  if (!project) {
+    output.innerHTML = "<p>Cria ou abre um projeto para começar.</p>";
+    return;
+  }
+
+  const pendingSteps = project.steps
     .map((step, index) => {
-      const isCompleted = plan.completed.includes(step);
-      const isCurrent = index === plan.currentStepIndex && plan.currentStepIndex < plan.steps.length;
+      const isCompleted = project.completed.includes(step);
+      const isCurrent = index === project.currentStepIndex && project.currentStepIndex < project.steps.length;
 
       let label = step;
       if (isCompleted) label = `✅ ${step}`;
@@ -14,17 +46,17 @@ export function renderOutput(plan) {
     })
     .join("");
 
-  const completedList = plan.completed.length
-    ? `<ul>${plan.completed.map(step => `<li>✅ ${step}</li>`).join("")}</ul>`
+  const completedList = project.completed.length
+    ? `<ul>${project.completed.map(step => `<li>✅ ${step}</li>`).join("")}</ul>`
     : `<p>Nada concluído ainda.</p>`;
 
-  const progressPercent = Math.round((plan.completed.length / plan.steps.length) * 100);
+  const progressPercent = Math.round((project.completed.length / project.steps.length) * 100);
 
-  const historyHtml = plan.conversationHistory && plan.conversationHistory.length
+  const historyHtml = project.conversationHistory && project.conversationHistory.length
     ? `
       <div class="history">
         <h3>Histórico da conversa</h3>
-        ${plan.conversationHistory.map(item => `
+        ${project.conversationHistory.map(item => `
           <div class="history-item">
             <p><strong>Pergunta:</strong> ${item.question}</p>
             <p><strong>Resposta:</strong></p>
@@ -42,13 +74,13 @@ export function renderOutput(plan) {
 
   output.innerHTML = `
     <h3>Projeto:</h3>
-    <p>${plan.project}</p>
+    <p>${project.project}</p>
 
     <h3>Fase atual:</h3>
-    <p>${plan.phase}</p>
+    <p>${project.phase}</p>
 
     <h3>Tarefa atual:</h3>
-    <p>${plan.currentTask}</p>
+    <p>${project.currentTask}</p>
 
     <h3>Progresso:</h3>
     <p>${progressPercent}% concluído</p>
@@ -63,7 +95,6 @@ export function renderOutput(plan) {
 
     <div class="actions">
       <button id="completeTaskBtn">Concluir tarefa atual</button>
-      <button id="resetBtn">Reiniciar projeto</button>
     </div>
 
     ${historyHtml}

@@ -1,53 +1,117 @@
-const STORAGE_KEY = "project_state";
+const PROJECTS_KEY = "projects_state";
+const ACTIVE_PROJECT_KEY = "active_project_id";
 
-export function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+export function loadProjects() {
+  const data = localStorage.getItem(PROJECTS_KEY);
+  return data ? JSON.parse(data) : [];
 }
 
-export function loadState() {
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : null;
+export function saveProjects(projects) {
+  localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
 }
 
-export function clearState() {
-  localStorage.removeItem(STORAGE_KEY);
+export function getActiveProjectId() {
+  return localStorage.getItem(ACTIVE_PROJECT_KEY);
 }
 
-export function completeCurrentTask(state) {
-  if (!state || !state.steps || state.currentStepIndex >= state.steps.length) {
-    return state;
+export function setActiveProjectId(projectId) {
+  localStorage.setItem(ACTIVE_PROJECT_KEY, projectId);
+}
+
+export function clearActiveProjectId() {
+  localStorage.removeItem(ACTIVE_PROJECT_KEY);
+}
+
+export function addProject(project) {
+  const projects = loadProjects();
+  projects.unshift(project);
+  saveProjects(projects);
+  setActiveProjectId(project.id);
+  return projects;
+}
+
+export function getActiveProject() {
+  const projects = loadProjects();
+  const activeId = getActiveProjectId();
+
+  if (!activeId) return null;
+
+  return projects.find(project => project.id === activeId) || null;
+}
+
+export function updateProject(updatedProject) {
+  const projects = loadProjects().map(project =>
+    project.id === updatedProject.id
+      ? { ...updatedProject, updatedAt: new Date().toISOString() }
+      : project
+  );
+
+  saveProjects(projects);
+  return projects;
+}
+
+export function deleteProject(projectId) {
+  const projects = loadProjects().filter(project => project.id !== projectId);
+  saveProjects(projects);
+
+  const activeId = getActiveProjectId();
+
+  if (activeId === projectId) {
+    if (projects.length > 0) {
+      setActiveProjectId(projects[0].id);
+    } else {
+      clearActiveProjectId();
+    }
   }
 
-  const currentTask = state.steps[state.currentStepIndex];
+  return projects;
+}
 
-  if (!state.completed.includes(currentTask)) {
-    state.completed.push(currentTask);
+export function selectProject(projectId) {
+  setActiveProjectId(projectId);
+  return getActiveProject();
+}
+
+export function completeCurrentTask(project) {
+  if (!project || !project.steps || project.currentStepIndex >= project.steps.length) {
+    return project;
   }
 
-  state.currentStepIndex += 1;
+  const currentTask = project.steps[project.currentStepIndex];
 
-  if (state.currentStepIndex < state.steps.length) {
-    state.currentTask = state.steps[state.currentStepIndex];
+  if (!project.completed.includes(currentTask)) {
+    project.completed.push(currentTask);
+  }
+
+  project.currentStepIndex += 1;
+
+  if (project.currentStepIndex < project.steps.length) {
+    project.currentTask = project.steps[project.currentStepIndex];
   } else {
-    state.currentTask = "Projeto concluído";
-    state.phase = "Concluído";
+    project.currentTask = "Projeto concluído";
+    project.phase = "Concluído";
   }
 
-  saveState(state);
-  return state;
+  updateProject(project);
+  return project;
 }
 
-export function addConversationEntry(state, question, answer) {
-  if (!state.conversationHistory) {
-    state.conversationHistory = [];
+export function addConversationEntry(project, question, answer) {
+  if (!project.conversationHistory) {
+    project.conversationHistory = [];
   }
 
-  state.conversationHistory.push({
+  project.conversationHistory.push({
     question,
     answer,
     timestamp: new Date().toISOString()
   });
 
-  saveState(state);
-  return state;
+  updateProject(project);
+  return project;
+}
+
+export function clearAllProjects() {
+  localStorage.removeItem(PROJECTS_KEY);
+  localStorage.removeItem(ACTIVE_PROJECT_KEY);
 }
