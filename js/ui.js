@@ -1,4 +1,5 @@
 import { generateProactiveMessage } from "./proactive.js";
+
 export function renderProjectsList(projects, activeProjectId) {
   const projectsList = document.getElementById("projectsList");
 
@@ -29,16 +30,15 @@ export function renderProjectsList(projects, activeProjectId) {
 export function renderOutput(project) {
   const output = document.getElementById("output");
 
-  const proactiveMessage = generateProactiveMessage(project);
-
-  const proactiveHtml = proactiveMessage
-    ? `<div class="proactive-box">${proactiveMessage}</div>`
-    : "";
-
   if (!project) {
     output.innerHTML = "<p>Cria ou abre um projeto para começar.</p>";
     return;
   }
+
+  const proactiveMessage = generateProactiveMessage(project);
+  const proactiveHtml = proactiveMessage
+    ? `<div class="proactive-box">${proactiveMessage}</div>`
+    : "";
 
   const pendingSteps = project.steps
     .map((step, index) => {

@@ -1,3 +1,62 @@
+function normalizeText(text) {
+  return (text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function inferIntent(entry) {
+  if (entry.intent) return entry.intent;
+
+  const q = normalizeText(entry.question);
+
+  if (
+    q.includes("publico") ||
+    q.includes("publico-alvo") ||
+    q.includes("persona") ||
+    q.includes("cliente ideal") ||
+    q.includes("alvo")
+  ) {
+    return "publico";
+  }
+
+  if (
+    q.includes("objetivo") ||
+    q.includes("meta") ||
+    q.includes("resultado")
+  ) {
+    return "objetivo";
+  }
+
+  if (
+    q.includes("canal") ||
+    q.includes("anuncio") ||
+    q.includes("trafego") ||
+    q.includes("orcamento") ||
+    q.includes("custo")
+  ) {
+    return "canais";
+  }
+
+  if (
+    q.includes("funcionalidade") ||
+    q.includes("mvp") ||
+    q.includes("feature")
+  ) {
+    return "funcionalidades";
+  }
+
+  if (
+    q.includes("tecnologia") ||
+    q.includes("stack") ||
+    q.includes("framework")
+  ) {
+    return "tecnologia";
+  }
+
+  return "generic";
+}
+
 export function generateProactiveMessage(project) {
   const history = project.conversationHistory || [];
   const completed = project.completed || [];
@@ -5,36 +64,37 @@ export function generateProactiveMessage(project) {
 
   if (!history.length) return null;
 
-  // -------------------------
-  // DETECTAR REPETIÇÃO
-  // -------------------------
-  const lastIntent = history[history.length - 1]?.intent;
-  const sameIntentCount = history.filter(h => h.intent === lastIntent).length;
+  let lastIntent = inferIntent(history[history.length - 1]);
+  let consecutiveCount = 0;
 
-  if (sameIntentCount >= 3) {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const intent = inferIntent(history[i]);
+
+    if (intent === lastIntent) {
+      consecutiveCount++;
+    } else {
+      break;
+    }
+  }
+
+  if (consecutiveCount >= 3) {
     return `
-<p><strong>Nota:</strong> Já estás a voltar várias vezes ao mesmo ponto.</p>
-<p>Queres que eu te ajude a fechar isto agora em vez de continuar a analisar?</p>
+<p><strong>Nota:</strong> Estás a repetir a mesma linha de dúvida.</p>
+<p>Em vez de continuar a perguntar, vamos fechar uma decisão prática agora?</p>
 `;
   }
 
-  // -------------------------
-  // DETECTAR FALTA DE AÇÃO
-  // -------------------------
-  if (history.length >= 3 && completed.length === 0) {
+  if (history.length >= 4 && completed.length === 0) {
     return `
 <p><strong>Nota:</strong> Já exploraste bastante, mas ainda não executaste.</p>
-<p>Se quiseres, eu posso guiar-te passo a passo para fechar esta tarefa.</p>
+<p>Se quiseres, eu guio-te agora para fechar esta tarefa: <strong>${currentTask}</strong>.</p>
 `;
   }
 
-  // -------------------------
-  // DETECTAR POSSÍVEL BLOQUEIO
-  // -------------------------
-  if (history.length >= 5) {
+  if (history.length >= 6) {
     return `
-<p><strong>Nota:</strong> Parece que estás a acumular informação.</p>
-<p>Vamos simplificar e decidir o próximo passo juntos?</p>
+<p><strong>Nota:</strong> Estás a acumular informação sem avançar.</p>
+<p>Vamos simplificar e escolher o próximo passo agora?</p>
 `;
   }
 
