@@ -145,3 +145,11 @@ li {
   padding: 8px 10px;
   font-size: 13px;
 }
+
+.proactive-box {
+  background: #fff3cd;
+  border: 1px solid #ffeeba;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+}
