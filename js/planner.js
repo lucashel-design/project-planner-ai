@@ -92,3 +92,20 @@ function createGenericPlan(input) {
     currentTask: steps[0]
   };
 }
+
+export function createPlanFromBrief(briefing) {
+  const initialIdea = briefing?.initialIdea || "Novo projeto";
+  const basePlan = createPlan(initialIdea);
+
+  return {
+    ...basePlan,
+    briefing: {
+      initialIdea: briefing?.initialIdea || "",
+      goal: briefing?.goal || "",
+      audience: briefing?.audience || "",
+      deadline: briefing?.deadline || "",
+      resources: briefing?.resources || "",
+      constraint: briefing?.constraint || ""
+    }
+  };
+}

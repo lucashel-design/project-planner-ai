@@ -1,4 +1,4 @@
-import { createPlan } from "./js/planner.js";
+import { createPlanFromBrief } from "./js/planner.js";
 import {
   loadProjects,
   addProject,
@@ -11,6 +11,125 @@ import {
 } from "./js/state.js";
 import { renderOutput, renderProjectsList } from "./js/ui.js";
 import { answerQuestion } from "./js/assistant.js";
+
+const BRIEFING_QUESTIONS = [
+  {
+    key: "goal",
+    text: "Qual é o resultado final que queres alcançar?"
+  },
+  {
+    key: "audience",
+    text: "Para quem é este projeto?"
+  },
+  {
+    key: "deadline",
+    text: "Qual é o prazo ou urgência?"
+  },
+  {
+    key: "resources",
+    text: "Que recursos ou ferramentas já tens?"
+  },
+  {
+    key: "constraint",
+    text: "Qual é a maior dificuldade ou restrição neste projeto?"
+  }
+];
+
+// Sessão temporária em memória.
+// Se a página for recarregada, o briefing perde-se.
+let briefingSession = {
+  active: false,
+  currentQuestionIndex: 0,
+  briefing: {
+    initialIdea: "",
+    goal: "",
+    audience: "",
+    deadline: "",
+    resources: "",
+    constraint: ""
+  }
+};
+
+function resetBriefingSession() {
+  briefingSession = {
+    active: false,
+    currentQuestionIndex: 0,
+    briefing: {
+      initialIdea: "",
+      goal: "",
+      audience: "",
+      deadline: "",
+      resources: "",
+      constraint: ""
+    }
+  };
+}
+
+function startBriefingFlow(initialIdea) {
+  briefingSession = {
+    active: true,
+    currentQuestionIndex: 0,
+    briefing: {
+      initialIdea: initialIdea.trim(),
+      goal: "",
+      audience: "",
+      deadline: "",
+      resources: "",
+      constraint: ""
+    }
+  };
+
+  return BRIEFING_QUESTIONS[0].text;
+}
+
+function getCurrentBriefingQuestion() {
+  if (!briefingSession.active) return null;
+  return BRIEFING_QUESTIONS[briefingSession.currentQuestionIndex] || null;
+}
+
+function submitBriefingAnswer(answer) {
+  if (!briefingSession.active) {
+    return {
+      done: false,
+      reply: "O briefing não está ativo."
+    };
+  }
+
+  const cleanAnswer = answer.trim();
+  const currentQuestion = getCurrentBriefingQuestion();
+
+  if (!currentQuestion) {
+    return {
+      done: false,
+      reply: "Não encontrei a pergunta atual do briefing."
+    };
+  }
+
+  if (!cleanAnswer) {
+    return {
+      done: false,
+      reply: currentQuestion.text
+    };
+  }
+
+  briefingSession.briefing[currentQuestion.key] = cleanAnswer;
+  briefingSession.currentQuestionIndex += 1;
+
+  const hasNextQuestion =
+    briefingSession.currentQuestionIndex < BRIEFING_QUESTIONS.length;
+
+  if (hasNextQuestion) {
+    return {
+      done: false,
+      reply: BRIEFING_QUESTIONS[briefingSession.currentQuestionIndex].text
+    };
+  }
+
+  return {
+    done: true,
+    reply: "Perfeito. Já tenho o briefing completo. Vou criar o projeto com base nas tuas respostas."
+  };
+}
 
 function clearAssistantPanel() {
   const assistantOutput = document.getElementById("assistantOutput");
@@ -31,21 +150,34 @@ function refreshUI() {
 }
 
 function attachActionListeners() {
-  const generateBtn = document.getElementById("generateBtn");
+  const startBriefingBtn = document.getElementById("startBriefingBtn");
   const completeBtn = document.getElementById("completeTaskBtn");
   const askBtn = document.getElementById("askBtn");
+  const input = document.getElementById("input");
+  const questionInput = document.getElementById("questionInput");
+  const assistantOutput = document.getElementById("assistantOutput");
 
-  if (generateBtn) {
-    generateBtn.onclick = () => {
-      const input = document.getElementById("input").value.trim();
-      if (!input) return;
+  if (startBriefingBtn) {
+    startBriefingBtn.onclick = () => {
+      const initialIdea = input.value.trim();
 
-      const plan = createPlan(input);
-      addProject(plan);
+      if (!initialIdea) {
+        if (assistantOutput) {
+          assistantOutput.innerHTML = "<p>Descreve primeiro a ideia inicial do projeto.</p>";
+        }
+        return;
+      }
 
-      document.getElementById("input").value = "";
-      clearAssistantPanel();
-      refreshUI();
+      const firstQuestion = startBriefingFlow(initialIdea);
+
+      input.value = "";
+      if (questionInput) questionInput.value = "";
+      if (assistantOutput) {
+        assistantOutput.innerHTML = `
+          <p><strong>Vamos estruturar bem este projeto antes de criar o plano.</strong></p>
+          <p>${firstQuestion}</p>
+        `;
+      }
     };
   }
 
@@ -62,25 +194,43 @@ function attachActionListeners() {
 
   if (askBtn) {
     askBtn.onclick = () => {
-      const activeProject = getActiveProject();
-      const question = document.getElementById("questionInput").value.trim();
+      const question = questionInput.value.trim();
 
-      if (!activeProject) {
-        document.getElementById("assistantOutput").innerHTML = "<p>Cria ou abre primeiro um projeto.</p>";
+      if (!question) {
+        assistantOutput.innerHTML = "<p>Escreve primeiro uma pergunta.</p>";
         return;
       }
 
-      if (!question) {
-        document.getElementById("assistantOutput").innerHTML = "<p>Escreve primeiro uma pergunta.</p>";
+      if (briefingSession.active) {
+        const result = submitBriefingAnswer(question);
+
+        questionInput.value = "";
+        assistantOutput.innerHTML = `<p>${result.reply}</p>`;
+
+        if (result.done) {
+          const plan = createPlanFromBrief(briefingSession.briefing);
+          addProject(plan);
+          resetBriefingSession();
+          refreshUI();
+          assistantOutput.innerHTML = "<p>Projeto criado com sucesso a partir do briefing.</p>";
+        }
+
+        return;
+      }
+
+      const activeProject = getActiveProject();
+
+      if (!activeProject) {
+        assistantOutput.innerHTML = "<p>Cria ou abre primeiro um projeto.</p>";
         return;
       }
 
       const result = answerQuestion(question, activeProject);
       addConversationEntry(activeProject, question, result.answer, result.intent);
 
-      document.getElementById("questionInput").value = "";
+      questionInput.value = "";
       refreshUI();
-      document.getElementById("assistantOutput").innerHTML = result.answer;
+      assistantOutput.innerHTML = result.answer;
     };
   }
 
@@ -88,6 +238,7 @@ function attachActionListeners() {
     button.onclick = () => {
       const projectId = button.dataset.id;
       selectProject(projectId);
+      resetBriefingSession();
       clearAssistantPanel();
       refreshUI();
     };
@@ -97,6 +248,7 @@ function attachActionListeners() {
     button.onclick = () => {
       const projectId = button.dataset.id;
       deleteProject(projectId);
+      resetBriefingSession();
       clearAssistantPanel();
       refreshUI();
     };
