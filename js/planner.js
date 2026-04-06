@@ -8,104 +8,65 @@ function generateTitle(input) {
   return `${trimmed.slice(0, 50)}...`;
 }
 
-export function createPlan(input) {
-  const lowerInput = input.toLowerCase();
+export function createPlanFromBrief(briefing) {
+  const initialIdea = briefing.initialIdea;
+  const projectType = briefing.projectType;
+  const answers = briefing.answers;
 
-  let basePlan;
+  let steps = [];
+  let phase = "";
+  let currentTask = "";
 
-  if (lowerInput.includes("marketing")) {
-    basePlan = createMarketingPlan(input);
-  } else if (lowerInput.includes("app") || lowerInput.includes("aplicação")) {
-    basePlan = createAppPlan(input);
+  if (projectType === "marketing") {
+    steps = [
+      "Definir objetivo da campanha",
+      "Definir cliente ideal",
+      "Escolher canal principal",
+      "Clarificar oferta",
+      "Criar plano de conteúdo",
+      "Executar campanhas",
+      "Analisar resultados"
+    ];
+    phase = "Fase 1 — Estratégia de Marketing";
+  } else if (projectType === "app") {
+    steps = [
+      "Definir problema",
+      "Definir utilizador",
+      "Definir funcionalidade principal",
+      "Escolher tecnologia",
+      "Criar estrutura base",
+      "Implementar MVP",
+      "Testar"
+    ];
+    phase = "Fase 1 — Planeamento do Produto";
   } else {
-    basePlan = createGenericPlan(input);
+    steps = [
+      "Definir objetivo",
+      "Quebrar em tarefas",
+      "Organizar prioridades",
+      "Executar",
+      "Revisar"
+    ];
+    phase = "Fase 1 — Estruturação";
   }
+
+  currentTask = steps[0];
 
   const now = new Date().toISOString();
 
   return {
     id: generateId(),
-    title: generateTitle(input),
+    title: generateTitle(initialIdea),
     createdAt: now,
     updatedAt: now,
-    ...basePlan,
+    project: initialIdea,
+    projectType,
+    phase,
+    steps,
+    currentTask,
     currentStepIndex: 0,
     completed: [],
-    conversationHistory: []
-  };
-}
-
-function createMarketingPlan(input) {
-  const steps = [
-    "Definir objetivo",
-    "Definir público-alvo",
-    "Definir proposta de valor",
-    "Escolher canais",
-    "Criar plano de conteúdo",
-    "Executar campanhas",
-    "Analisar resultados"
-  ];
-
-  return {
-    project: input,
-    projectType: "marketing",
-    phase: "Fase 1 — Base Estratégica",
-    steps,
-    currentTask: steps[0]
-  };
-}
-
-function createAppPlan(input) {
-  const steps = [
-    "Definir problema",
-    "Definir funcionalidades",
-    "Escolher tecnologia",
-    "Criar UI básica",
-    "Implementar lógica",
-    "Testar",
-    "Publicar"
-  ];
-
-  return {
-    project: input,
-    projectType: "app",
-    phase: "Fase 1 — Planeamento",
-    steps,
-    currentTask: steps[0]
-  };
-}
-
-function createGenericPlan(input) {
-  const steps = [
-    "Definir objetivo",
-    "Quebrar em tarefas",
-    "Organizar prioridades",
-    "Executar",
-    "Revisar"
-  ];
-
-  return {
-    project: input,
-    projectType: "generic",
-    phase: "Fase 1 — Definição",
-    steps,
-    currentTask: steps[0]
-  };
-}
-
-export function createPlanFromBrief(briefing) {
-  const initialIdea = briefing?.initialIdea || "Novo projeto";
-  const basePlan = createPlan(initialIdea);
-
-  return {
-    ...basePlan,
-    briefing: {
-      initialIdea: briefing?.initialIdea || "",
-      goal: briefing?.goal || "",
-      audience: briefing?.audience || "",
-      deadline: briefing?.deadline || "",
-      resources: briefing?.resources || "",
-      constraint: briefing?.constraint || ""
-    }
+    conversationHistory: [],
+    briefing
   };
 }
