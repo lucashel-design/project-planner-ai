@@ -1,23 +1,23 @@
 # Project Planner AI
 
-A vanilla JavaScript app that turns project ideas into structured plans through guided briefing, task tracking, and simple assistant-style interactions.
+A vanilla JavaScript app that helps users turn ideas into structured projects through guided briefing, task organization, and simple assistant-style interactions.
 
 ## Overview
 
-Project Planner AI is a frontend project built to help users turn an initial idea into a clearer project plan.
+Project Planner AI is a frontend application designed to help users organize a project starting from a simple idea.
 
-The app guides the user through a simple briefing flow, helps organize project information, and keeps track of tasks and project progress in a practical way.
+Instead of starting with an empty structure, the app guides the user through a short briefing flow, collects essential information, and transforms it into a clearer project plan with progress tracking.
 
-This project was built as part of my frontend portfolio to practice JavaScript, state management, UI updates, and application structure without relying on frameworks.
+This project was built as part of my portfolio to strengthen my JavaScript fundamentals and better understand how frontend applications manage state, user flow, and dynamic rendering.
 
 ## Features
 
-- Create projects from an initial idea
-- Guided briefing flow with structured questions
-- Project-based organization
+- Start a project from an initial idea
+- Guided briefing process
+- Project organization and structure
 - Task and progress tracking
-- Assistant-style interaction inside each project
-- Local storage persistence
+- Assistant-style project interaction
+- Data persistence with LocalStorage
 
 ## Tech Stack
 
@@ -26,36 +26,34 @@ This project was built as part of my frontend portfolio to practice JavaScript, 
 - JavaScript
 - LocalStorage
 
-## What I Practiced
+## Learning Goals
 
-With this project, I focused on improving:
+This project helped me practice:
 
-- JavaScript application logic
 - State management
-- Dynamic UI rendering
-- Component and file structure
-- User flow thinking
-- Frontend problem solving
+- DOM manipulation
+- UI updates based on application state
+- File and logic organization
+- User-centered flow design
+- Building structured frontend applications without frameworks
 
-## Why I Built This
+## Why This Project Matters
 
-I built this project to practice how a frontend application handles user input, stores data, updates the interface, and keeps the experience organized around the user’s goal.
+I built this project to practice more than layout and styling.
 
-It also helped me think more carefully about product flow, especially how to guide users from a vague idea to a more structured plan.
+My goal was to better understand how a frontend app behaves when the user creates content, moves through a flow, updates information, and expects the interface to respond correctly.
 
-## Current Status
+## Next Steps
 
-This project is still evolving and being improved as part of my learning process.
+Planned improvements include:
 
-Next improvements may include:
-
-- Better UI polish
-- Smarter assistant responses
-- Improved project categorization
-- More flexible planning flows
+- Cleaner visual design
+- Better assistant logic
+- More advanced project planning options
+- Improved UX for multi-project workflows
 
 ## Author
 
 Lucas Helfensteller
 
-Frontend developer in transition from hospitality to tech, currently focused on building practical projects and strengthening my JavaScript and React skills.
+Career changer from hospitality to tech, focused on frontend development and building practical projects with JavaScript and React.
