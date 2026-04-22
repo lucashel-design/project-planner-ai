@@ -16,6 +16,8 @@ import { answerQuestion } from "./js/assistant.js";
    DETECTAR TIPO DE PROJETO
 ============================ */
 
+console.log("APP COMPLETA CARGADA");
+
 function detectProjectType(initialIdea) {
   const text = (initialIdea || "").toLowerCase();
 
@@ -23,7 +25,9 @@ function detectProjectType(initialIdea) {
     text.includes("marketing") ||
     text.includes("campanha") ||
     text.includes("anúncio") ||
+    text.includes("anuncio") ||
     text.includes("conteudo") ||
+    text.includes("conteúdo") ||
     text.includes("instagram") ||
     text.includes("publicidade")
   ) {
@@ -33,6 +37,7 @@ function detectProjectType(initialIdea) {
   if (
     text.includes("app") ||
     text.includes("aplicação") ||
+    text.includes("aplicacao") ||
     text.includes("software") ||
     text.includes("site") ||
     text.includes("plataforma")
@@ -105,6 +110,7 @@ let briefingSession = {
   active: false,
   currentQuestionIndex: 0,
   questions: [],
+  lastMessage: "",
   briefing: {
     initialIdea: "",
     projectType: "generic",
@@ -117,12 +123,46 @@ function resetBriefingSession() {
     active: false,
     currentQuestionIndex: 0,
     questions: [],
+    lastMessage: "",
     briefing: {
       initialIdea: "",
       projectType: "generic",
       answers: {}
     }
   };
+}
+
+function getBriefingProgressText() {
+  if (!briefingSession.questions.length) return "";
+  const current = briefingSession.currentQuestionIndex + 1;
+  const total = briefingSession.questions.length;
+  return `Briefing — Pregunta ${current} de ${total}`;
+}
+
+function formatBriefingMessage(questionText) {
+  return `
+    <div style="border:3px solid red; padding:16px; border-radius:8px; margin-top:8px; background:yellow; color:black;">
+      <p style="margin:0 0 8px 0; font-size:20px;"><strong>=== ${getBriefingProgressText()} ===</strong></p>
+      <p style="margin:0; font-size:18px;">${questionText}</p>
+    </div>
+  `;
+}
+
+function formatBriefingSummary(briefing) {
+  const answers = briefing.answers;
+
+  const rows = Object.entries(answers)
+    .map(([key, value]) => `<p><strong>${key}:</strong> ${value}</p>`)
+    .join("");
+
+  return `
+    <div style="border:2px solid #333; padding:16px; border-radius:8px; margin-top:8px; background:#f5f5f5;">
+      <h3>Resumen del briefing</h3>
+      ${rows}
+      <p style="margin-top:12px;"><strong>¿Quieres crear el proyecto con esta información?</strong></p>
+      <button id="confirmBriefingBtn">Crear proyecto</button>
+    </div>
+  `;
 }
 
 function startBriefingFlow(initialIdea) {
@@ -132,6 +172,7 @@ function startBriefingFlow(initialIdea) {
     active: true,
     currentQuestionIndex: 0,
     questions: briefingConfig.questions,
+    lastMessage: briefingConfig.questions[0].text,
     briefing: {
       initialIdea: initialIdea.trim(),
       projectType: briefingConfig.projectType,
@@ -143,22 +184,46 @@ function startBriefingFlow(initialIdea) {
 }
 
 function submitBriefingAnswer(answer) {
+  if (!briefingSession.active) {
+    return {
+      done: false,
+      reply: "El briefing no está activo."
+    };
+  }
+
   const cleanAnswer = answer.trim();
   const currentQuestion = briefingSession.questions[briefingSession.currentQuestionIndex];
+
+  if (!currentQuestion) {
+    return {
+      done: false,
+      reply: "No encontré la pregunta actual del briefing."
+    };
+  }
+
+  if (!cleanAnswer) {
+    return {
+      done: false,
+      reply: currentQuestion.text
+    };
+  }
 
   briefingSession.briefing.answers[currentQuestion.key] = cleanAnswer;
   briefingSession.currentQuestionIndex++;
 
   if (briefingSession.currentQuestionIndex < briefingSession.questions.length) {
+    const nextQuestion = briefingSession.questions[briefingSession.currentQuestionIndex].text;
+    briefingSession.lastMessage = nextQuestion;
+
     return {
       done: false,
-      reply: briefingSession.questions[briefingSession.currentQuestionIndex].text
+      reply: nextQuestion
     };
   }
 
   return {
     done: true,
-    reply: "Briefing completo. Vou criar o projeto."
+    summary: formatBriefingSummary(briefingSession.briefing)
   };
 }
 
@@ -175,16 +240,35 @@ function clearAssistantPanel() {
 }
 
 function refreshUI() {
+  console.log("refreshUI() iniciou");
+
   const projects = loadProjects();
   const activeProjectId = getActiveProjectId();
   const activeProject = getActiveProject();
 
+  console.log("projects:", projects);
+  console.log("activeProjectId:", activeProjectId);
+  console.log("activeProject:", activeProject);
+
   renderProjectsList(projects, activeProjectId);
+  console.log("renderProjectsList OK");
+
   renderOutput(activeProject);
+  console.log("renderOutput OK");
+
   attachActionListeners();
+  console.log("attachActionListeners OK");
+
+  const assistantOutput = document.getElementById("assistantOutput");
+
+  if (briefingSession.active && briefingSession.lastMessage && assistantOutput) {
+    assistantOutput.innerHTML = formatBriefingMessage(briefingSession.lastMessage);
+  }
 }
 
 function attachActionListeners() {
+  console.log("attachActionListeners() iniciou");
+
   const startBriefingBtn = document.getElementById("startBriefingBtn");
   const completeBtn = document.getElementById("completeTaskBtn");
   const askBtn = document.getElementById("askBtn");
@@ -194,12 +278,40 @@ function attachActionListeners() {
 
   if (startBriefingBtn) {
     startBriefingBtn.onclick = () => {
+      console.log("CLICK startBriefingBtn");
+
       const initialIdea = input.value.trim();
-      if (!initialIdea) return;
+      console.log("initialIdea:", initialIdea);
+
+      if (!initialIdea) {
+        if (assistantOutput) {
+          assistantOutput.innerHTML = "<p>Descreve primeiro a ideia inicial do projeto.</p>";
+        }
+        return;
+      }
 
       const firstQuestion = startBriefingFlow(initialIdea);
-      assistantOutput.innerHTML = `<p>${firstQuestion}</p>`;
+      console.log("firstQuestion:", firstQuestion);
+
       input.value = "";
+      if (questionInput) questionInput.value = "";
+
+      if (assistantOutput) {
+        assistantOutput.innerHTML = formatBriefingMessage(firstQuestion);
+      }
+
+      briefingSession.lastMessage = firstQuestion;
+    };
+  }
+
+  if (completeBtn) {
+    completeBtn.onclick = () => {
+      const activeProject = getActiveProject();
+      if (!activeProject) return;
+
+      completeCurrentTask(activeProject);
+      clearAssistantPanel();
+      refreshUI();
     };
   }
 
@@ -207,28 +319,68 @@ function attachActionListeners() {
     askBtn.onclick = () => {
       const question = questionInput.value.trim();
 
+      if (!question) {
+        if (assistantOutput) {
+          assistantOutput.innerHTML = "<p>Escreve primeiro uma resposta ou uma pergunta.</p>";
+        }
+        return;
+      }
+
+      // ===== FLUJO DEL BRIEFING =====
       if (briefingSession.active) {
         const result = submitBriefingAnswer(question);
-        assistantOutput.innerHTML = `<p>${result.reply}</p>`;
         questionInput.value = "";
 
+        if (assistantOutput) {
+          if (result.done) {
+            assistantOutput.innerHTML = `<p>${result.reply}</p>`;
+          } else {
+            assistantOutput.innerHTML = formatBriefingMessage(result.reply);
+          }
+        }
+
         if (result.done) {
-          const plan = createPlanFromBrief(briefingSession.briefing);
-          addProject(plan);
-          resetBriefingSession();
-          refreshUI();
+          assistantOutput.innerHTML = result.summary;
+
+          // esperar clique no botão
+          setTimeout(() => {
+            const confirmBtn = document.getElementById("confirmBriefingBtn");
+
+            if (confirmBtn) {
+              confirmBtn.onclick = () => {
+                const plan = createPlanFromBrief(briefingSession.briefing);
+                addProject(plan);
+                resetBriefingSession();
+                refreshUI();
+
+                assistantOutput.innerHTML = "<p>Projeto criado com sucesso a partir do briefing.</p>";
+              };
+            }
+          }, 0);
         }
 
         return;
       }
 
+      // ===== FLUJO NORMAL DEL ASISTENTE =====
       const activeProject = getActiveProject();
+
+      if (!activeProject) {
+        if (assistantOutput) {
+          assistantOutput.innerHTML = "<p>Cria ou abre primeiro um projeto.</p>";
+        }
+        return;
+      }
+
       const result = answerQuestion(question, activeProject);
       addConversationEntry(activeProject, question, result.answer, result.intent);
 
       questionInput.value = "";
       refreshUI();
-      assistantOutput.innerHTML = result.answer;
+
+      if (assistantOutput) {
+        assistantOutput.innerHTML = result.answer;
+      }
     };
   }
 
