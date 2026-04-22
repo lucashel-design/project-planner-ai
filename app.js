@@ -48,6 +48,45 @@ function detectProjectType(initialIdea) {
   return "generic";
 }
 
+/* ============================
+   DETECTAR COMPLEJIDAD
+============================ */
+
+function detectProjectComplexity(initialIdea) {
+  const text = (initialIdea || "").toLowerCase().trim();
+
+  if (text.length < 30) {
+    return "simple";
+  }
+
+  if (
+    text.includes("app") ||
+    text.includes("software") ||
+    text.includes("plataforma") ||
+    text.includes("integración") ||
+    text.includes("integracao") ||
+    text.includes("sistema") ||
+    text.includes("automatización") ||
+    text.includes("automacao")
+  ) {
+    return "complex";
+  }
+
+  if (
+    text.includes("marketing") ||
+    text.includes("instagram") ||
+    text.includes("negocio") ||
+    text.includes("negócio") ||
+    text.includes("empresa") ||
+    text.includes("campaña") ||
+    text.includes("campanha")
+  ) {
+    return "medium";
+  }
+
+  return "medium";
+}
+
 function buildProjectReference(initialIdea) {
   const clean = (initialIdea || "").trim();
   if (!clean) return "este proyecto";
@@ -55,45 +94,122 @@ function buildProjectReference(initialIdea) {
   return `${clean.slice(0, 80)}...`;
 }
 
+/* ============================
+   GENERADOR DE TEXTO
+   (preparado para futura IA)
+============================ */
+
+function generateQuestionText(key, projectRef) {
+  switch (key) {
+    // APP
+    case "problem":
+      return `¿Qué problema concreto quieres resolver con "${projectRef}"?`;
+
+    case "user":
+      return `¿Quién usaría realmente "${projectRef}" en su día a día?`;
+
+    case "mainFeature":
+      return `¿Qué tendría que hacer sí o sí la primera versión para que "${projectRef}" ya sea útil?`;
+
+    case "techPreference":
+      return `¿Tienes alguna tecnología en mente para este proyecto o prefieres empezar de la forma más simple posible?`;
+
+    case "constraint":
+      return `¿Cuál es la mayor limitación ahora mismo para sacar adelante este proyecto?`;
+
+    // MARKETING
+    case "result":
+      return `¿Qué resultado concreto quieres generar con "${projectRef}"?`;
+
+    case "customer":
+      return `¿Qué tipo de cliente quieres atraer exactamente con este proyecto?`;
+
+    case "channel":
+      return `¿En qué canal quieres enfocarte primero para mover este proyecto?`;
+
+    case "offer":
+      return `¿Qué producto, servicio u oferta vas a empujar en este proyecto?`;
+
+    case "difficulty":
+      return `¿Qué es lo que más te está frenando ahora mismo en este proyecto?`;
+
+    // GENERIC
+    case "goal":
+      return `¿Cuál es el resultado final que quieres lograr con "${projectRef}"?`;
+
+    case "target":
+      return `¿Quién se verá impactado por "${projectRef}"?`;
+
+    case "deadline":
+      return `¿Hay algún plazo o urgencia real para este proyecto?`;
+
+    case "resources":
+      return `¿Qué recursos, herramientas o apoyos ya tienes para este proyecto?`;
+
+    default:
+      return `Cuéntame un poco más sobre "${projectRef}"`;
+  }
+}
+
+/* ============================
+   DEFINICIÓN DE PREGUNTAS
+============================ */
+
 function getBriefingQuestions(initialIdea) {
   const projectType = detectProjectType(initialIdea);
+  const complexity = detectProjectComplexity(initialIdea);
   const projectRef = buildProjectReference(initialIdea);
 
+  let baseQuestionKeys = [];
+  let questionKeys = [];
+
   if (projectType === "marketing") {
-    return {
-      projectType,
-      questions: [
-        { key: "result", text: `¿Qué resultado quieres generar con "${projectRef}"?` },
-        { key: "customer", text: `¿Qué cliente quieres atraer con "${projectRef}"?` },
-        { key: "channel", text: `¿En qué canal quieres enfocarte primero en este proyecto?` },
-        { key: "offer", text: `¿Qué producto o servicio quieres promover en este proyecto?` },
-        { key: "difficulty", text: `¿Cuál es hoy la mayor dificultad en este proyecto?` }
-      ]
-    };
+    baseQuestionKeys = [
+      "result",
+      "customer",
+      "channel",
+      "offer",
+      "difficulty",
+      "resources",
+      "deadline"
+    ];
+  } else if (projectType === "app") {
+    baseQuestionKeys = [
+      "problem",
+      "user",
+      "mainFeature",
+      "techPreference",
+      "constraint",
+      "resources",
+      "deadline"
+    ];
+  } else {
+    baseQuestionKeys = [
+      "goal",
+      "target",
+      "deadline",
+      "resources",
+      "constraint",
+      "channel",
+      "offer"
+    ];
   }
 
-  if (projectType === "app") {
-    return {
-      projectType,
-      questions: [
-        { key: "problem", text: `¿Qué problema resuelve "${projectRef}"?` },
-        { key: "user", text: `¿Quién va a usar "${projectRef}"?` },
-        { key: "mainFeature", text: `¿Cuál es la funcionalidad principal de la primera versión?` },
-        { key: "techPreference", text: `¿Tienes alguna tecnología en mente para este proyecto?` },
-        { key: "constraint", text: `¿Cuál es la mayor limitación para este proyecto?` }
-      ]
-    };
+  if (complexity === "simple") {
+    questionKeys = baseQuestionKeys.slice(0, 3);
+  } else if (complexity === "medium") {
+    questionKeys = baseQuestionKeys.slice(0, 5);
+  } else {
+    questionKeys = baseQuestionKeys.slice(0, 7);
   }
 
   return {
     projectType,
-    questions: [
-      { key: "goal", text: `¿Cuál es el resultado final que quieres lograr con "${projectRef}"?` },
-      { key: "target", text: `¿Quién se verá impactado por "${projectRef}"?` },
-      { key: "deadline", text: `¿Hay algún plazo para "${projectRef}"?` },
-      { key: "resources", text: `¿Qué recursos ya tienes para este proyecto?` },
-      { key: "constraint", text: `¿Cuál es la mayor dificultad en este proyecto?` }
-    ]
+    complexity,
+    questions: questionKeys.map((key) => ({
+      key,
+      text: generateQuestionText(key, projectRef)
+    }))
   };
 }
 
@@ -110,6 +226,7 @@ let briefingSession = {
   briefing: {
     initialIdea: "",
     projectType: "generic",
+    complexity: "medium",
     answers: {}
   }
 };
@@ -124,6 +241,7 @@ function resetBriefingSession() {
     briefing: {
       initialIdea: "",
       projectType: "generic",
+      complexity: "medium",
       answers: {}
     }
   };
@@ -168,9 +286,11 @@ function renderBriefingHistory() {
 
 function formatBriefingMessage(questionText) {
   return `
-    <div style="border:3px solid red; padding:16px; border-radius:8px; margin-top:8px; background:yellow; color:black;">
-      <p style="margin:0 0 8px 0; font-size:20px;"><strong>${getBriefingProgressText()}</strong></p>
-      <p style="margin:0; font-size:18px;">${questionText}</p>
+    <div style="border:2px solid #ccc; padding:16px; border-radius:8px; margin-top:8px; background:#fffbe6; color:#111;">
+      <p style="margin:0 0 8px 0; font-size:18px;">
+        <strong>${getBriefingProgressText()}</strong>
+      </p>
+      <p style="margin:0; font-size:17px;">${questionText}</p>
     </div>
   `;
 }
@@ -193,6 +313,8 @@ function formatBriefingSummary(briefing) {
   return `
     <div style="border:2px solid #333; padding:16px; border-radius:8px; margin-top:8px; background:#f5f5f5;">
       <h3>Resumen del briefing</h3>
+      <p><strong>Tipo de proyecto:</strong> ${briefing.projectType}</p>
+      <p><strong>Complejidad detectada:</strong> ${briefing.complexity}</p>
       ${rows}
       <p style="margin-top:12px;"><strong>¿Quieres crear el proyecto con esta información?</strong></p>
       <button id="confirmBriefingBtn">Crear proyecto</button>
@@ -213,6 +335,7 @@ function startBriefingFlow(initialIdea) {
     briefing: {
       initialIdea: initialIdea.trim(),
       projectType: briefingConfig.projectType,
+      complexity: briefingConfig.complexity,
       answers: {}
     }
   };
