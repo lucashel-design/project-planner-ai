@@ -146,6 +146,19 @@ function generateQuestionText(key, projectRef) {
     case "resources":
       return `¿Qué recursos, herramientas o apoyos ya tienes para este proyecto?`;
 
+    // FOLLOW-UPS DINÁMICOS
+    case "resourceGap":
+      return `Veo que los recursos son limitados. ¿Qué te falta más ahora mismo: tiempo, dinero, herramientas o ayuda de otra persona?`;
+
+    case "deadlinePressure":
+      return `Como parece que hay urgencia, ¿cuál sería un plazo realista mínimo para que este proyecto empiece a dar resultado?`;
+
+    case "techSupport":
+      return `Si la parte técnica te limita, ¿prefieres aprender lo básico tú mismo o apoyarte en herramientas / ayuda externa para avanzar más rápido?`;
+
+    case "constraintDetail":
+      return `Para entender mejor el bloqueo: ¿esa limitación principal es más de tiempo, dinero, conocimiento o ejecución?`;
+
     default:
       return `Cuéntame un poco más sobre "${projectRef}"`;
   }
@@ -223,6 +236,7 @@ let briefingSession = {
   questions: [],
   lastMessage: "",
   history: [],
+  askedAdaptiveKeys: [],
   briefing: {
     initialIdea: "",
     projectType: "generic",
@@ -238,6 +252,7 @@ function resetBriefingSession() {
     questions: [],
     lastMessage: "",
     history: [],
+    askedAdaptiveKeys: [],
     briefing: {
       initialIdea: "",
       projectType: "generic",
@@ -322,6 +337,103 @@ function formatBriefingSummary(briefing) {
   `;
 }
 
+/* ============================
+   FOLLOW-UPS DINÁMICOS
+============================ */
+
+function normalizeText(text) {
+  return (text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function shouldAskAdaptiveFollowUp(currentKey, answer) {
+  const text = normalizeText(answer);
+
+  if (
+    currentKey === "resources" &&
+    (
+      text.includes("no tengo") ||
+      text.includes("ninguno") ||
+      text.includes("ninguna") ||
+      text.includes("pocos") ||
+      text.includes("poco") ||
+      text.includes("limitado") ||
+      text.includes("limitada")
+    )
+  ) {
+    return "resourceGap";
+  }
+
+  if (
+    currentKey === "deadline" &&
+    (
+      text.includes("hoy") ||
+      text.includes("manana") ||
+      text.includes("mañana") ||
+      text.includes("esta semana") ||
+      text.includes("urgente") ||
+      text.includes("rapido") ||
+      text.includes("rápido") ||
+      text.includes("ya")
+    )
+  ) {
+    return "deadlinePressure";
+  }
+
+  if (
+    currentKey === "techPreference" &&
+    (
+      text.includes("no se") ||
+      text.includes("no sé") ||
+      text.includes("ninguna") ||
+      text.includes("no tengo idea") ||
+      text.includes("no entiendo") ||
+      text.includes("no programo")
+    )
+  ) {
+    return "techSupport";
+  }
+
+  if (
+    currentKey === "constraint" &&
+    (
+      text.includes("tiempo") ||
+      text.includes("dinero") ||
+      text.includes("conocimiento") ||
+      text.includes("tecnico") ||
+      text.includes("técnico") ||
+      text.includes("ejecucion") ||
+      text.includes("ejecución")
+    )
+  ) {
+    return "constraintDetail";
+  }
+
+  return null;
+}
+
+function insertAdaptiveQuestionIfNeeded(currentKey, answer) {
+  const adaptiveKey = shouldAskAdaptiveFollowUp(currentKey, answer);
+
+  if (!adaptiveKey) return;
+
+  if (briefingSession.askedAdaptiveKeys.includes(adaptiveKey)) return;
+
+  const projectRef = buildProjectReference(briefingSession.briefing.initialIdea);
+  const adaptiveQuestion = {
+    key: adaptiveKey,
+    text: generateQuestionText(adaptiveKey, projectRef)
+  };
+
+  const insertIndex = briefingSession.currentQuestionIndex + 1;
+
+  briefingSession.questions.splice(insertIndex, 0, adaptiveQuestion);
+  briefingSession.askedAdaptiveKeys.push(adaptiveKey);
+}
+
+/* ============================
+   BRIEFING FLOW
+============================ */
+
 function startBriefingFlow(initialIdea) {
   const briefingConfig = getBriefingQuestions(initialIdea);
   const firstQuestion = briefingConfig.questions[0].text;
@@ -332,6 +444,7 @@ function startBriefingFlow(initialIdea) {
     questions: briefingConfig.questions,
     lastMessage: firstQuestion,
     history: [{ role: "assistant", text: firstQuestion }],
+    askedAdaptiveKeys: [],
     briefing: {
       initialIdea: initialIdea.trim(),
       projectType: briefingConfig.projectType,
@@ -374,6 +487,9 @@ function submitBriefingAnswer(answer) {
   });
 
   briefingSession.briefing.answers[currentQuestion.key] = cleanAnswer;
+
+  // insertar follow-up dinámico si hace falta
+  insertAdaptiveQuestionIfNeeded(currentQuestion.key, cleanAnswer);
 
   const isLastQuestion =
     briefingSession.currentQuestionIndex === briefingSession.questions.length - 1;
