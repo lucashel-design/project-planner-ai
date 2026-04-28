@@ -7,16 +7,35 @@ import {
   selectProject,
   deleteProject,
   completeCurrentTask,
-  addConversationEntry
+  addConversationEntry,
+  clearActiveProjectId
 } from "./js/state.js";
 import { renderOutput, renderProjectsList } from "./js/ui.js";
 import { answerQuestion } from "./js/assistant.js";
 
+console.log("APP COMPLETA CARGADA");
+
+/* ============================
+   APP MODE
+============================ */
+
+let appMode = getActiveProjectId() ? "work" : "create";
+
+function enterCreateMode() {
+  appMode = "create";
+  clearActiveProjectId();
+  resetBriefingSession();
+  clearAssistantPanel();
+  refreshUI();
+}
+
+function enterWorkMode() {
+  appMode = "work";
+}
+
 /* ============================
    DETECTAR TIPO DE PROYECTO
 ============================ */
-
-console.log("APP COMPLETA CARGADA");
 
 function normalizeText(text) {
   return (text || "")
@@ -62,7 +81,6 @@ function detectProjectType(initialIdea) {
 
 function analyzeBriefingNeeds(initialIdea, projectType) {
   const text = normalizeText(initialIdea);
-
   const missingInfo = [];
 
   const hasGoal =
@@ -165,7 +183,6 @@ function buildProjectReference(initialIdea) {
 
 /* ============================
    GENERADOR DE TEXTO
-   preparado para futura IA
 ============================ */
 
 function generateQuestionText(key, projectRef) {
@@ -585,13 +602,27 @@ function clearAssistantPanel() {
   if (questionInput) questionInput.value = "";
 }
 
+function updateScreenMode() {
+  const createProjectArea = document.getElementById("createProjectArea");
+  const assistantArea = document.getElementById("assistantArea");
+
+  if (createProjectArea) {
+    createProjectArea.style.display = appMode === "create" ? "block" : "none";
+  }
+
+  if (assistantArea) {
+    assistantArea.style.display = "block";
+  }
+}
+
 function refreshUI() {
   const projects = loadProjects();
   const activeProjectId = getActiveProjectId();
-  const activeProject = getActiveProject();
+  const activeProject = appMode === "work" ? getActiveProject() : null;
 
   renderProjectsList(projects, activeProjectId);
-  renderOutput(activeProject);
+  renderOutput(activeProject, appMode);
+  updateScreenMode();
   attachActionListeners();
 
   const assistantOutput = document.getElementById("assistantOutput");
@@ -602,12 +633,19 @@ function refreshUI() {
 }
 
 function attachActionListeners() {
+  const newProjectBtn = document.getElementById("newProjectBtn");
   const startBriefingBtn = document.getElementById("startBriefingBtn");
   const completeBtn = document.getElementById("completeTaskBtn");
   const askBtn = document.getElementById("askBtn");
   const input = document.getElementById("input");
   const questionInput = document.getElementById("questionInput");
   const assistantOutput = document.getElementById("assistantOutput");
+
+  if (newProjectBtn) {
+    newProjectBtn.onclick = () => {
+      enterCreateMode();
+    };
+  }
 
   if (startBriefingBtn) {
     startBriefingBtn.onclick = () => {
@@ -667,6 +705,8 @@ function attachActionListeners() {
               confirmBtn.onclick = () => {
                 const plan = createPlanFromBrief(briefingSession.briefing);
                 addProject(plan);
+
+                enterWorkMode();
                 resetBriefingSession();
                 refreshUI();
 
@@ -707,6 +747,7 @@ function attachActionListeners() {
   document.querySelectorAll(".open-project-btn").forEach((button) => {
     button.onclick = () => {
       selectProject(button.dataset.id);
+      enterWorkMode();
       resetBriefingSession();
       clearAssistantPanel();
       refreshUI();
@@ -718,11 +759,24 @@ function attachActionListeners() {
       deleteProject(button.dataset.id);
       resetBriefingSession();
       clearAssistantPanel();
+
+      if (getActiveProject()) {
+        enterWorkMode();
+      } else {
+        appMode = "create";
+      }
+
       refreshUI();
     };
   });
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+  if (getActiveProject()) {
+    appMode = "work";
+  } else {
+    appMode = "create";
+  }
+
   refreshUI();
 });

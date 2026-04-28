@@ -3,12 +3,19 @@ import { generateProactiveMessage } from "./proactive.js";
 export function renderProjectsList(projects, activeProjectId) {
   const projectsList = document.getElementById("projectsList");
 
+  const newProjectButton = `
+    <button id="newProjectBtn" class="new-project-btn">+ Novo projeto</button>
+  `;
+
   if (!projects.length) {
-    projectsList.innerHTML = "<p>Ainda não há projetos.</p>";
+    projectsList.innerHTML = `
+      ${newProjectButton}
+      <p>Ainda não há projetos.</p>
+    `;
     return;
   }
 
-  projectsList.innerHTML = projects.map(project => {
+  const projectsHtml = projects.map(project => {
     const isActive = project.id === activeProjectId;
     const progressPercent = Math.round((project.completed.length / project.steps.length) * 100);
 
@@ -25,13 +32,26 @@ export function renderProjectsList(projects, activeProjectId) {
       </div>
     `;
   }).join("");
+
+  projectsList.innerHTML = `
+    ${newProjectButton}
+    ${projectsHtml}
+  `;
 }
 
-export function renderOutput(project) {
+export function renderOutput(project, mode = "work") {
   const output = document.getElementById("output");
 
+  if (mode === "create") {
+    output.innerHTML = `
+      <h3>Novo projeto</h3>
+      <p>Descreve a ideia inicial para começar um briefing antes de criar o plano.</p>
+    `;
+    return;
+  }
+
   if (!project) {
-    output.innerHTML = "<p>Cria ou abre um projeto para começar.</p>";
+    output.innerHTML = "<p>Abre um projeto existente ou cria um novo projeto para começar.</p>";
     return;
   }
 
