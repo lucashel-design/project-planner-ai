@@ -18,28 +18,36 @@ import { answerQuestion } from "./js/assistant.js";
 
 console.log("APP COMPLETA CARGADA");
 
+function normalizeText(text) {
+  return (text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function detectProjectType(initialIdea) {
-  const text = (initialIdea || "").toLowerCase();
+  const text = normalizeText(initialIdea);
 
   if (
     text.includes("marketing") ||
     text.includes("campanha") ||
-    text.includes("anúncio") ||
+    text.includes("campana") ||
     text.includes("anuncio") ||
     text.includes("conteudo") ||
-    text.includes("conteúdo") ||
+    text.includes("contenido") ||
     text.includes("instagram") ||
-    text.includes("publicidade")
+    text.includes("publicidade") ||
+    text.includes("publicidad")
   ) {
     return "marketing";
   }
 
   if (
     text.includes("app") ||
-    text.includes("aplicação") ||
-    text.includes("aplicacao") ||
+    text.includes("aplicacion") ||
     text.includes("software") ||
     text.includes("site") ||
+    text.includes("web") ||
     text.includes("plataforma")
   ) {
     return "app";
@@ -49,42 +57,103 @@ function detectProjectType(initialIdea) {
 }
 
 /* ============================
-   DETECTAR COMPLEJIDAD
+   ANALIZAR NECESIDAD DE BRIEFING
 ============================ */
 
-function detectProjectComplexity(initialIdea) {
-  const text = (initialIdea || "").toLowerCase().trim();
+function analyzeBriefingNeeds(initialIdea, projectType) {
+  const text = normalizeText(initialIdea);
 
-  if (text.length < 30) {
-    return "simple";
-  }
+  const missingInfo = [];
 
-  if (
-    text.includes("app") ||
-    text.includes("software") ||
-    text.includes("plataforma") ||
-    text.includes("integración") ||
-    text.includes("integracao") ||
-    text.includes("sistema") ||
-    text.includes("automatización") ||
-    text.includes("automacao")
-  ) {
-    return "complex";
-  }
+  const hasGoal =
+    text.includes("quiero") ||
+    text.includes("crear") ||
+    text.includes("hacer") ||
+    text.includes("vender") ||
+    text.includes("organizar") ||
+    text.includes("atraer") ||
+    text.includes("conseguir") ||
+    text.includes("mejorar");
 
-  if (
-    text.includes("marketing") ||
+  const hasAudience =
+    text.includes("para") ||
+    text.includes("clientes") ||
+    text.includes("usuarios") ||
+    text.includes("personas") ||
+    text.includes("empresas") ||
+    text.includes("mujeres") ||
+    text.includes("hombres") ||
+    text.includes("restaurantes");
+
+  const hasDeadline =
+    text.includes("hoy") ||
+    text.includes("manana") ||
+    text.includes("semana") ||
+    text.includes("mes") ||
+    text.includes("dias") ||
+    text.includes("urgente") ||
+    text.includes("rapido");
+
+  const hasResources =
+    text.includes("con") ||
+    text.includes("tengo") ||
+    text.includes("herramienta") ||
+    text.includes("equipo") ||
+    text.includes("presupuesto") ||
+    text.includes("dinero");
+
+  const hasConstraint =
+    text.includes("sin") ||
+    text.includes("poco") ||
+    text.includes("limitado") ||
+    text.includes("no se") ||
+    text.includes("no tengo") ||
+    text.includes("dificultad") ||
+    text.includes("problema");
+
+  const hasChannelOrTech =
     text.includes("instagram") ||
-    text.includes("negocio") ||
-    text.includes("negócio") ||
-    text.includes("empresa") ||
-    text.includes("campaña") ||
-    text.includes("campanha")
-  ) {
-    return "medium";
+    text.includes("facebook") ||
+    text.includes("tiktok") ||
+    text.includes("web") ||
+    text.includes("javascript") ||
+    text.includes("react") ||
+    text.includes("github") ||
+    text.includes("wordpress");
+
+  if (!hasGoal) missingInfo.push("goal");
+  if (!hasAudience) missingInfo.push("audience");
+  if (!hasDeadline) missingInfo.push("deadline");
+  if (!hasResources) missingInfo.push("resources");
+  if (!hasConstraint) missingInfo.push("constraint");
+
+  if (projectType === "marketing" && !hasChannelOrTech) {
+    missingInfo.push("channel");
   }
 
-  return "medium";
+  if (projectType === "app" && !hasChannelOrTech) {
+    missingInfo.push("tech");
+  }
+
+  let questionCount = 5;
+  let complexity = "medium";
+
+  if (missingInfo.length <= 2) {
+    questionCount = 3;
+    complexity = "simple";
+  } else if (missingInfo.length <= 4) {
+    questionCount = 5;
+    complexity = "medium";
+  } else {
+    questionCount = 7;
+    complexity = "complex";
+  }
+
+  return {
+    complexity,
+    questionCount,
+    missingInfo
+  };
 }
 
 function buildProjectReference(initialIdea) {
@@ -96,12 +165,11 @@ function buildProjectReference(initialIdea) {
 
 /* ============================
    GENERADOR DE TEXTO
-   (preparado para futura IA)
+   preparado para futura IA
 ============================ */
 
 function generateQuestionText(key, projectRef) {
   switch (key) {
-    // APP
     case "problem":
       return `¿Qué problema concreto quieres resolver con "${projectRef}"?`;
 
@@ -117,7 +185,6 @@ function generateQuestionText(key, projectRef) {
     case "constraint":
       return `¿Cuál es la mayor limitación ahora mismo para sacar adelante este proyecto?`;
 
-    // MARKETING
     case "result":
       return `¿Qué resultado concreto quieres generar con "${projectRef}"?`;
 
@@ -133,7 +200,6 @@ function generateQuestionText(key, projectRef) {
     case "difficulty":
       return `¿Qué es lo que más te está frenando ahora mismo en este proyecto?`;
 
-    // GENERIC
     case "goal":
       return `¿Cuál es el resultado final que quieres lograr con "${projectRef}"?`;
 
@@ -146,7 +212,6 @@ function generateQuestionText(key, projectRef) {
     case "resources":
       return `¿Qué recursos, herramientas o apoyos ya tienes para este proyecto?`;
 
-    // FOLLOW-UPS DINÁMICOS
     case "resourceGap":
       return `Veo que los recursos son limitados. ¿Qué te falta más ahora mismo: tiempo, dinero, herramientas o ayuda de otra persona?`;
 
@@ -170,11 +235,10 @@ function generateQuestionText(key, projectRef) {
 
 function getBriefingQuestions(initialIdea) {
   const projectType = detectProjectType(initialIdea);
-  const complexity = detectProjectComplexity(initialIdea);
+  const analysis = analyzeBriefingNeeds(initialIdea, projectType);
   const projectRef = buildProjectReference(initialIdea);
 
   let baseQuestionKeys = [];
-  let questionKeys = [];
 
   if (projectType === "marketing") {
     baseQuestionKeys = [
@@ -208,17 +272,13 @@ function getBriefingQuestions(initialIdea) {
     ];
   }
 
-  if (complexity === "simple") {
-    questionKeys = baseQuestionKeys.slice(0, 3);
-  } else if (complexity === "medium") {
-    questionKeys = baseQuestionKeys.slice(0, 5);
-  } else {
-    questionKeys = baseQuestionKeys.slice(0, 7);
-  }
+  const questionKeys = baseQuestionKeys.slice(0, analysis.questionCount);
 
   return {
     projectType,
-    complexity,
+    complexity: analysis.complexity,
+    missingInfo: analysis.missingInfo,
+    questionCount: analysis.questionCount,
     questions: questionKeys.map((key) => ({
       key,
       text: generateQuestionText(key, projectRef)
@@ -241,6 +301,7 @@ let briefingSession = {
     initialIdea: "",
     projectType: "generic",
     complexity: "medium",
+    missingInfo: [],
     answers: {}
   }
 };
@@ -257,6 +318,7 @@ function resetBriefingSession() {
       initialIdea: "",
       projectType: "generic",
       complexity: "medium",
+      missingInfo: [],
       answers: {}
     }
   };
@@ -330,6 +392,7 @@ function formatBriefingSummary(briefing) {
       <h3>Resumen del briefing</h3>
       <p><strong>Tipo de proyecto:</strong> ${briefing.projectType}</p>
       <p><strong>Complejidad detectada:</strong> ${briefing.complexity}</p>
+      <p><strong>Contexto faltante detectado:</strong> ${briefing.missingInfo.join(", ") || "poco contexto faltante"}</p>
       ${rows}
       <p style="margin-top:12px;"><strong>¿Quieres crear el proyecto con esta información?</strong></p>
       <button id="confirmBriefingBtn">Crear proyecto</button>
@@ -340,10 +403,6 @@ function formatBriefingSummary(briefing) {
 /* ============================
    FOLLOW-UPS DINÁMICOS
 ============================ */
-
-function normalizeText(text) {
-  return (text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
 
 function shouldAskAdaptiveFollowUp(currentKey, answer) {
   const text = normalizeText(answer);
@@ -368,11 +427,9 @@ function shouldAskAdaptiveFollowUp(currentKey, answer) {
     (
       text.includes("hoy") ||
       text.includes("manana") ||
-      text.includes("mañana") ||
       text.includes("esta semana") ||
       text.includes("urgente") ||
       text.includes("rapido") ||
-      text.includes("rápido") ||
       text.includes("ya")
     )
   ) {
@@ -383,7 +440,6 @@ function shouldAskAdaptiveFollowUp(currentKey, answer) {
     currentKey === "techPreference" &&
     (
       text.includes("no se") ||
-      text.includes("no sé") ||
       text.includes("ninguna") ||
       text.includes("no tengo idea") ||
       text.includes("no entiendo") ||
@@ -400,9 +456,7 @@ function shouldAskAdaptiveFollowUp(currentKey, answer) {
       text.includes("dinero") ||
       text.includes("conocimiento") ||
       text.includes("tecnico") ||
-      text.includes("técnico") ||
-      text.includes("ejecucion") ||
-      text.includes("ejecución")
+      text.includes("ejecucion")
     )
   ) {
     return "constraintDetail";
@@ -415,10 +469,10 @@ function insertAdaptiveQuestionIfNeeded(currentKey, answer) {
   const adaptiveKey = shouldAskAdaptiveFollowUp(currentKey, answer);
 
   if (!adaptiveKey) return;
-
   if (briefingSession.askedAdaptiveKeys.includes(adaptiveKey)) return;
 
   const projectRef = buildProjectReference(briefingSession.briefing.initialIdea);
+
   const adaptiveQuestion = {
     key: adaptiveKey,
     text: generateQuestionText(adaptiveKey, projectRef)
@@ -449,6 +503,7 @@ function startBriefingFlow(initialIdea) {
       initialIdea: initialIdea.trim(),
       projectType: briefingConfig.projectType,
       complexity: briefingConfig.complexity,
+      missingInfo: briefingConfig.missingInfo,
       answers: {}
     }
   };
@@ -488,7 +543,6 @@ function submitBriefingAnswer(answer) {
 
   briefingSession.briefing.answers[currentQuestion.key] = cleanAnswer;
 
-  // insertar follow-up dinámico si hace falta
   insertAdaptiveQuestionIfNeeded(currentQuestion.key, cleanAnswer);
 
   const isLastQuestion =
@@ -597,7 +651,6 @@ function attachActionListeners() {
         return;
       }
 
-      // ===== FLUJO DEL BRIEFING =====
       if (briefingSession.active) {
         const result = submitBriefingAnswer(question);
         questionInput.value = "";
@@ -630,7 +683,6 @@ function attachActionListeners() {
         return;
       }
 
-      // ===== FLUJO NORMAL DEL ASISTENTE =====
       const activeProject = getActiveProject();
 
       if (!activeProject) {
